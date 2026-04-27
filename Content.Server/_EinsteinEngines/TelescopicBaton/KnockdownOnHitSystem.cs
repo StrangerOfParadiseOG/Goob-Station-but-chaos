@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using System.Linq;
-using Content.Goobstation.Common.Standing;
 using Content.Server.Stunnable;
 using Content.Shared._EinsteinEngines.TelescopicBaton;
 using Content.Shared.Mobs.Systems;
@@ -35,30 +34,23 @@ public sealed class KnockdownOnHitSystem : EntitySystem
         if (!entity.Comp.KnockdownOnHeavyAttack && args.Direction != null)
             return;
 
-        var ev = new KnockdownOnHitAttemptEvent(false, entity.Comp.DropHeldItemsBehavior); // Goob edit
+        var ev = new KnockdownOnHitAttemptEvent(false, entity.Comp.DropItems); // Goob edit
         RaiseLocalEvent(entity, ref ev);
         if (ev.Cancelled)
             return;
+
+        var dropItems = ev.DropItems;
 
         List<EntityUid> knockedDown = new(); // Goobstation
         foreach (var target in
                  args.HitEntities.Where(e => !HasComp<BorgChassisComponent>(e) && _mobState.IsAlive(e))) // Goob edit
         {
-            if (entity.Comp.Duration <= TimeSpan.Zero) // Goobstation
-            {
-                _stun.TryCrawling(target);
-                    knockedDown.Add(target);
-                continue;
-            }
-
-            if (!TryComp(target, out StatusEffectsComponent? statusEffects))
-                continue;
-
             if (_stun.TryKnockdown(target,
                 entity.Comp.Duration,
                 entity.Comp.RefreshDuration,
                 true,
-                DropHeldItemsBehavior.NoDrop))
+                dropItems,
+                entity.Comp.Autostand)) // goob edit
                 knockedDown.Add(target);
         }
 
